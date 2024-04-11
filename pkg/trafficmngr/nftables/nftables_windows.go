@@ -29,18 +29,19 @@ type NFTablesManager struct {
 }
 
 func (nftm *NFTablesManager) Init(ctx context.Context, wg *sync.WaitGroup) error {
-	log.Error(trafficmngr.ErrUnimplemented)
 	return nil
 }
 
 func (nftm *NFTablesManager) SetupAndEnsureForwardRules(ctx context.Context,
-	flannelIPv4Network ip.IP4Net, flannelIPv6Network ip.IP6Net, resyncPeriod int) {
+	flannelIPv4Network ip.IP4Net, flannelIPv6Network ip.IP6Net, resyncPeriod int) error {
+	log.Error("nftables traffic manager is not available on Windows")
+	return trafficmngr.ErrUnimplemented
 }
 
 func (nftm *NFTablesManager) SetupAndEnsureMasqRules(ctx context.Context, flannelIPv4Net, prevSubnet, prevNetwork ip.IP4Net,
 	flannelIPv6Net, prevIPv6Subnet, prevIPv6Network ip.IP6Net,
 	currentlease *lease.Lease,
 	resyncPeriod int) error {
-	log.Error(trafficmngr.ErrUnimplemented)
-	return nil
+	log.Error("nftables traffic manager is not available on Windows")
+	return trafficmngr.ErrUnimplemented
 }

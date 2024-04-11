@@ -23,10 +23,11 @@ import (
 	"time"
 
 	"github.com/coreos/go-iptables/iptables"
+	log "k8s.io/klog/v2"
+
 	"github.com/flannel-io/flannel/pkg/ip"
 	"github.com/flannel-io/flannel/pkg/lease"
 	"github.com/flannel-io/flannel/pkg/trafficmngr"
-	log "k8s.io/klog/v2"
 )
 
 type IPTables interface {
@@ -219,7 +220,7 @@ func (iptm *IPTablesManager) masqIP6Rules(ccidr ip.IP6Net, lease *lease.Lease) [
 	return rules
 }
 
-func (iptm *IPTablesManager) SetupAndEnsureForwardRules(ctx context.Context, flannelIPv4Network ip.IP4Net, flannelIPv6Network ip.IP6Net, resyncPeriod int) {
+func (iptm *IPTablesManager) SetupAndEnsureForwardRules(ctx context.Context, flannelIPv4Network ip.IP4Net, flannelIPv6Network ip.IP6Net, resyncPeriod int) error {
 	if !flannelIPv4Network.Empty() {
 		log.Infof("Changing default FORWARD chain policy to ACCEPT")
 		iptm.CreateIP4Chain("filter", "FLANNEL-FWD")
@@ -230,6 +231,8 @@ func (iptm *IPTablesManager) SetupAndEnsureForwardRules(ctx context.Context, fla
 		iptm.CreateIP6Chain("filter", "FLANNEL-FWD")
 		go iptm.setupAndEnsureIP6Tables(ctx, iptm.forwardRules(flannelIPv6Network.String()), resyncPeriod)
 	}
+
+	return nil
 }
 
 func (iptm *IPTablesManager) forwardRules(flannelNetwork string) []trafficmngr.IPTablesRule {

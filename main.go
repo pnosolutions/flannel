@@ -29,6 +29,9 @@ import (
 	"time"
 
 	"github.com/coreos/pkg/flagutil"
+	"golang.org/x/net/context"
+	log "k8s.io/klog/v2"
+
 	"github.com/flannel-io/flannel/pkg/ip"
 	"github.com/flannel-io/flannel/pkg/ipmatch"
 	"github.com/flannel-io/flannel/pkg/subnet"
@@ -38,13 +41,12 @@ import (
 	"github.com/flannel-io/flannel/pkg/trafficmngr/iptables"
 	"github.com/flannel-io/flannel/pkg/trafficmngr/nftables"
 	"github.com/flannel-io/flannel/pkg/version"
-	"golang.org/x/net/context"
-	log "k8s.io/klog/v2"
 
 	"github.com/joho/godotenv"
 
 	// Backends need to be imported for their init() to get executed and them to register
 	"github.com/coreos/go-systemd/v22/daemon"
+
 	"github.com/flannel-io/flannel/pkg/backend"
 	_ "github.com/flannel-io/flannel/pkg/backend/alloc"
 	_ "github.com/flannel-io/flannel/pkg/backend/extension"
@@ -362,7 +364,7 @@ func main() {
 			bn.Lease(),
 			opts.iptablesResyncSeconds)
 		if err != nil {
-			log.Errorf("Failed to setup masq rules, %v", err)
+			log.Errorf("failed to setup masquerading rules: %v", err)
 			cancel()
 			wg.Wait()
 			os.Exit(1)
@@ -373,10 +375,17 @@ func main() {
 	// In Docker 1.12 and earlier, the default FORWARD chain policy was ACCEPT.
 	// In Docker 1.13 and later, Docker sets the default policy of the FORWARD chain to DROP.
 	if opts.iptablesForwardRules {
-		trafficMngr.SetupAndEnsureForwardRules(ctx,
+		err = trafficMngr.SetupAndEnsureForwardRules(ctx,
 			config.Network,
 			config.IPv6Network,
 			opts.iptablesResyncSeconds)
+
+		if err != nil {
+			log.Errorf("failed to setup forwarding rules: %v", err)
+			cancel()
+			wg.Wait()
+			os.Exit(1)
+		}
 	}
 
 	if err := sm.HandleSubnetFile(opts.subnetFile, config, opts.ipMasq, bn.Lease().Subnet, bn.Lease().IPv6Subnet, bn.MTU()); err != nil {
